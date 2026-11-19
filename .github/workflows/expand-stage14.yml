@@ -1,0 +1,32 @@
+
+name: Expand Stage14 project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Expand project
+        run: |
+          set -euo pipefail
+          mkdir -p archives
+          mv Runebound_Arena_Stage14_Full_Project.zip archives/
+          mkdir -p /tmp/ra
+          unzip -t archives/Runebound_Arena_Stage14_Full_Project.zip
+          unzip -q archives/Runebound_Arena_Stage14_Full_Project.zip -d /tmp/ra
+          cp -a /tmp/ra/Runebound_Arena/. .
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Import Runebound Arena Stage14 project"
+          git push
