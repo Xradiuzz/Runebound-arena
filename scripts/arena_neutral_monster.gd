@@ -73,8 +73,8 @@ func _build_visuals() -> void:
     visual_root.name = "VisualRoot"
     add_child(visual_root)
 
-    var main_color := Color("#4F9169") if kind == "stalker" else Color("#777F91")
-    var accent_color := Color("#A8F0A4") if kind == "stalker" else Color("#F0C875")
+    var main_color := Color("#4F9169") if kind == "stalker" else Color("#665744")
+    var accent_color := Color("#A8F0A4") if kind == "stalker" else Color("#D9A85E")
 
     var body_material := StandardMaterial3D.new()
     body_material.albedo_color = main_color
