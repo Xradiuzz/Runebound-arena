@@ -45,8 +45,9 @@ func setup(
     monster_gold = reward_gold
     monster_xp = reward_xp
     respawn_delay = respawn_seconds
-    monster_aggro = 5.8 if kind == "stalker" else 6.4
-    monster_leash = 10.5 if kind == "stalker" else 11.5
+    # Neutral camps should defend a compact clearing, not trail the player across the map.
+    monster_aggro = 4.2 if kind == "stalker" else 4.6
+    monster_leash = 7.2 if kind == "stalker" else 7.8
 
 
 func _ready() -> void:
