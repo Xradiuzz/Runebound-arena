@@ -5,20 +5,23 @@ const QUALITY_LOW := 0
 const QUALITY_BALANCED := 1
 const QUALITY_HIGH := 2
 
+const SETTINGS_PATH := "user://runebound_settings.cfg"
+
 var game: Node
 var quality := QUALITY_BALANCED
 var _quality_names := ["LOW", "BALANCED", "HIGH"]
+var _settings := ConfigFile.new()
 
 
 func setup(game_node: Node) -> void:
     game = game_node
     var default_quality := QUALITY_BALANCED
-    if OS.has_feature("android") or OS.has_feature("ios"):
-        default_quality = QUALITY_BALANCED
-    set_quality(default_quality)
+    if _settings.load(SETTINGS_PATH) == OK:
+        default_quality = int(_settings.get_value("graphics", "quality", QUALITY_BALANCED))
+    set_quality(default_quality, false)
 
 
-func set_quality(value: int) -> void:
+func set_quality(value: int, persist := true) -> void:
     quality = clampi(value, QUALITY_LOW, QUALITY_HIGH)
     var viewport := get_viewport()
 
@@ -37,6 +40,12 @@ func set_quality(value: int) -> void:
     for node in get_tree().get_nodes_in_group("arena_quality_lights"):
         if node is DirectionalLight3D:
             (node as DirectionalLight3D).shadow_enabled = shadows_enabled
+
+    if persist:
+        _settings.set_value("graphics", "quality", quality)
+        var save_error := _settings.save(SETTINGS_PATH)
+        if save_error != OK:
+            push_warning("Could not save Runebound Arena graphics settings: %s" % error_string(save_error))
 
 
 func get_quality_name() -> String:

@@ -167,6 +167,9 @@ func _add_sphere(
 
 
 func _physics_process(delta: float) -> void:
+    if is_instance_valid(game) and bool(game.get("game_over")):
+        velocity = Vector3.ZERO
+        return
     super._physics_process(delta)
     if not alive:
         return

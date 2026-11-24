@@ -3,6 +3,12 @@ extends Node3D
 const LANE_X := [-10.0, 0.0, 10.0]
 const BLUE := 0
 const RED := 1
+const ABILITY_ICON_PATHS := {
+    "Q": "res://assets/icons/ability_q.png",
+    "W": "res://assets/icons/ability_w.png",
+    "E": "res://assets/icons/ability_e.png",
+    "R": "res://assets/icons/ability_r.png"
+}
 const BOSS_POSITION := Vector3(6.6, 0.0, 0.0)
 const BOSS_FIRST_SPAWN := 120.0
 const BOSS_RESPAWN_DELAY := 180.0
@@ -73,6 +79,14 @@ var shop_refresh_timer := 0.0
 var selection_layer: CanvasLayer
 var selected_hero_id := "warden"
 var match_started := false
+var match_kills := [0, 0]
+var match_deaths := [0, 0]
+var match_towers_destroyed := [0, 0]
+var match_boss_kills := [0, 0]
+var kill_feed_label: Label
+var kill_feed_timer := 0.0
+var match_summary_panel: Panel
+var audio_director: ArenaAudioDirector
 
 var match_time := 0.0
 var player_gold := 500
@@ -88,6 +102,9 @@ var red_core: ArenaTower
 
 func _ready() -> void:
     _setup_input()
+    audio_director = ArenaAudioDirector.new()
+    audio_director.name = "ArenaAudioDirector"
+    add_child(audio_director)
     _make_world()
     _spawn_structures()
     _spawn_hero_select()
@@ -164,6 +181,7 @@ func _make_world() -> void:
     _add_box("Red base platform", Vector3(0.0, 0.08, -12.0), Vector3(30.0, 0.18, 3.0), Color("#5C303B"))
 
     _make_forest_decoration()
+    _make_arena_landmarks()
     _build_boss_altar()
 
     var camera := Camera3D.new()
@@ -189,6 +207,12 @@ func _add_box(
     var material := StandardMaterial3D.new()
     material.albedo_color = color
     material.roughness = 0.88
+    if object_name == "Arena Ground":
+        material.albedo_texture = load("res://assets/textures/moss_ground.png")
+        material.uv1_scale = Vector3(12.0, 12.0, 1.0)
+    elif object_name.begins_with("Lane ") and not object_name.begins_with("Lane edge") and not object_name.begins_with("Lane rune"):
+        material.albedo_texture = load("res://assets/textures/ancient_stone.png")
+        material.uv1_scale = Vector3(2.0, 9.0, 1.0)
     instance.material_override = material
     instance.position = position
     add_child(instance)
@@ -238,6 +262,57 @@ func _make_forest_decoration() -> void:
                 crown.position.y = 2.1
                 crown.material_override = leaf_material
                 tree.add_child(crown)
+
+func _make_arena_landmarks() -> void:
+    var crystal_material := StandardMaterial3D.new()
+    crystal_material.albedo_color = Color("#57C8E8")
+    crystal_material.metallic = 0.28
+    crystal_material.roughness = 0.22
+    crystal_material.emission_enabled = true
+    crystal_material.emission = Color("#2D9FC9")
+    crystal_material.emission_energy_multiplier = 1.35
+
+    var warm_crystal_material := StandardMaterial3D.new()
+    warm_crystal_material.albedo_color = Color("#D6A65D")
+    warm_crystal_material.metallic = 0.35
+    warm_crystal_material.emission_enabled = true
+    warm_crystal_material.emission = Color("#9C672F")
+    warm_crystal_material.emission_energy_multiplier = 0.8
+
+    # Rune obelisks frame the three lanes and make the battlefield readable at a glance.
+    for lane_index in range(3):
+        var lane_x: float = LANE_X[lane_index]
+        for side in [-1.0, 1.0]:
+            var obelisk := MeshInstance3D.new()
+            var obelisk_mesh := CylinderMesh.new()
+            obelisk_mesh.top_radius = 0.12
+            obelisk_mesh.bottom_radius = 0.34
+            obelisk_mesh.height = 1.75
+            obelisk.mesh = obelisk_mesh
+            obelisk.position = Vector3(lane_x + side * 3.1, 0.9, 0.0)
+            obelisk.material_override = warm_crystal_material
+            add_child(obelisk)
+
+            var rune := MeshInstance3D.new()
+            var rune_mesh := SphereMesh.new()
+            rune_mesh.radius = 0.22
+            rune_mesh.height = 0.44
+            rune.mesh = rune_mesh
+            rune.position = Vector3(lane_x + side * 3.1, 1.9, 0.0)
+            rune.material_override = crystal_material
+            add_child(rune)
+
+    # Small crystal outcrops decorate the jungle without obstructing camp clearings.
+    for point in [Vector3(-17.0, 0.0, -7.5), Vector3(17.0, 0.0, 7.5), Vector3(-17.0, 0.0, 7.5), Vector3(17.0, 0.0, -7.5)]:
+        for shard_index in range(3):
+            var shard := MeshInstance3D.new()
+            var shard_mesh := PrismMesh.new()
+            shard_mesh.size = Vector3(0.38, 0.95 + float(shard_index % 2) * 0.42, 0.34)
+            shard.mesh = shard_mesh
+            shard.position = point + Vector3((float(shard_index) - 1.0) * 0.34, shard_mesh.size.y * 0.5, 0.0)
+            shard.rotation_degrees.y = float(shard_index) * 24.0
+            shard.material_override = crystal_material
+            add_child(shard)
 
 func _build_boss_altar() -> void:
     var altar := Node3D.new()
@@ -651,6 +726,7 @@ func _spawn_hero_select() -> void:
     var roster := [
         {
             "id": "warden",
+            "portrait": "res://assets/icons/hero_warden.png",
             "name": "WARDEN",
             "role": "OFFLANE  •  INITIATOR",
             "icon": "✦",
@@ -661,6 +737,7 @@ func _spawn_hero_select() -> void:
         },
         {
             "id": "nyxara",
+            "portrait": "res://assets/icons/hero_nyxara.png",
             "name": "NYXARA",
             "role": "MID  •  CONTROL MAGE",
             "icon": "✧",
@@ -671,6 +748,7 @@ func _spawn_hero_select() -> void:
         },
         {
             "id": "grom",
+            "portrait": "res://assets/icons/hero_grom.png",
             "name": "GROM",
             "role": "CARRY  •  BERSERKER",
             "icon": "⚔",
@@ -681,6 +759,7 @@ func _spawn_hero_select() -> void:
         },
         {
             "id": "elyra",
+            "portrait": "res://assets/icons/hero_elyra.png",
             "name": "ELYRA",
             "role": "SUPPORT  •  WARDEN OF DAWN",
             "icon": "☼",
@@ -691,6 +770,7 @@ func _spawn_hero_select() -> void:
         },
         {
             "id": "vaelis",
+            "portrait": "res://assets/icons/hero_vaelis.png",
             "name": "VAELIS",
             "role": "ROAMER  •  SHADOW HUNTER",
             "icon": "◈",
@@ -719,13 +799,13 @@ func _spawn_hero_select() -> void:
         accent.size = Vector2(192.0, 5.0)
         card.add_child(accent)
 
-        var icon := Label.new()
-        icon.text = str(hero_data["icon"])
-        icon.position = Vector2(14.0, 31.0)
-        icon.size = Vector2(192.0, 68.0)
-        icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-        icon.add_theme_font_size_override("font_size", 48)
-        icon.add_theme_color_override("font_color", hero_color.lightened(0.25))
+        var icon := TextureRect.new()
+        icon.name = "HeroPortrait"
+        icon.texture = load(str(hero_data["portrait"]))
+        icon.position = Vector2(70.0, 22.0)
+        icon.size = Vector2(80.0, 80.0)
+        icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
         card.add_child(icon)
 
         var name_label := Label.new()
@@ -795,7 +875,17 @@ func _start_match(hero_id: String) -> void:
     if match_started:
         return
     selected_hero_id = hero_id
+    if is_instance_valid(audio_director):
+        audio_director.play_sfx("ui")
+        audio_director.start_music()
     match_started = true
+    game_over = false
+    match_time = 0.0
+    match_kills = [0, 0]
+    match_deaths = [0, 0]
+    match_towers_destroyed = [0, 0]
+    match_boss_kills = [0, 0]
+    kill_feed_timer = 0.0
     if is_instance_valid(selection_layer):
         selection_layer.queue_free()
     selection_layer = null
@@ -832,6 +922,16 @@ func _spawn_hud() -> void:
     add_child(hud)
     if is_instance_valid(mobile_layout):
         mobile_layout.set_layers(null, hud)
+
+    kill_feed_label = Label.new()
+    kill_feed_label.name = "KillFeed"
+    kill_feed_label.position = Vector2(390.0, 150.0)
+    kill_feed_label.size = Vector2(500.0, 30.0)
+    kill_feed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    kill_feed_label.add_theme_font_size_override("font_size", 16)
+    kill_feed_label.add_theme_color_override("font_color", Color("#FFE1A1"))
+    kill_feed_label.visible = false
+    hud.add_child(kill_feed_label)
 
     var top_panel := Panel.new()
     top_panel.position = Vector2(20.0, 18.0)
@@ -957,6 +1057,8 @@ func _spawn_hud() -> void:
             slot_colors[index]
         )
         ability_button.add_theme_font_size_override("font_size", 14)
+        ability_button.icon = load(str(ABILITY_ICON_PATHS[slot]))
+        ability_button.icon_max_width = 30
         ability_button.pressed.connect(_on_ability_pressed.bind(slot))
         hud.add_child(ability_button)
         ability_buttons[slot] = ability_button
@@ -1524,13 +1626,18 @@ func _make_button(
     button.add_theme_stylebox_override("pressed", _panel_style(color.darkened(0.2), 1.0, 18))
     return button
 
+func play_arena_sound(sound_key: String) -> void:
+    if is_instance_valid(audio_director):
+        audio_director.play_sfx(sound_key)
+
 func _player_attack() -> void:
     if is_instance_valid(player) and player.alive:
         player.request_attack()
 
 func _on_ability_pressed(slot: String) -> void:
     if is_instance_valid(hero_abilities):
-        hero_abilities.call("cast", slot)
+        if bool(hero_abilities.call("cast", slot)):
+            play_arena_sound("spell")
     _update_ability_hud()
 
 
@@ -1575,7 +1682,7 @@ func _update_ability_hud() -> void:
         upgrade_button.disabled = not upgrade_button.visible
 
 func _input(event: InputEvent) -> void:
-    if not match_started:
+    if not match_started or game_over:
         return
     if is_instance_valid(targeting):
         targeting.handle_input(event)
@@ -1702,12 +1809,75 @@ func all_towers_destroyed(owner_team: int) -> bool:
     return true
 
 func on_actor_killed(actor: ArenaActor, killer_team: int) -> void:
+    play_arena_sound("death")
+    if not actor.is_minion and (actor.team == BLUE or actor.team == RED):
+        match_deaths[actor.team] += 1
+        if killer_team == BLUE or killer_team == RED:
+            match_kills[killer_team] += 1
+            _show_kill_feed(actor.label, killer_team)
     if killer_team != BLUE and killer_team != RED:
         return
     if actor.gold_reward > 0:
         _distribute_bot_gold(killer_team, maxi(1, int(floor(float(actor.gold_reward) / 10.0))))
     if killer_team == BLUE:
         _grant_player_rewards(actor.gold_reward, actor.xp_reward, actor.label)
+
+func _show_kill_feed(victim_name: String, killer_team: int) -> void:
+    if not is_instance_valid(kill_feed_label):
+        return
+    var team_name := "BLUE" if killer_team == BLUE else "RED"
+    var team_color := Color("#8BD9FF") if killer_team == BLUE else Color("#FF9A91")
+    kill_feed_label.text = "%s TEAM  •  %s DEFEATED" % [team_name, victim_name.to_upper()]
+    kill_feed_label.add_theme_color_override("font_color", team_color)
+    kill_feed_label.visible = true
+    kill_feed_timer = 3.2
+
+func _show_match_summary(winner_team: int) -> void:
+    if not is_instance_valid(hud) or is_instance_valid(match_summary_panel):
+        return
+    match_summary_panel = Panel.new()
+    match_summary_panel.name = "MatchSummary"
+    match_summary_panel.position = Vector2(390.0, 180.0)
+    match_summary_panel.size = Vector2(500.0, 360.0)
+    match_summary_panel.add_theme_stylebox_override("panel", _panel_style(Color("#101D30"), 0.98, 24))
+    match_summary_panel.z_index = 100
+    hud.add_child(match_summary_panel)
+
+    var winner := Label.new()
+    winner.position = Vector2(24.0, 22.0)
+    winner.size = Vector2(452.0, 48.0)
+    winner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    winner.add_theme_font_size_override("font_size", 32)
+    winner.add_theme_color_override("font_color", Color("#F4D58D"))
+    winner.text = "BLUE VICTORY" if winner_team == BLUE else "RED VICTORY"
+    match_summary_panel.add_child(winner)
+
+    var duration := "%02d:%02d" % [int(match_time) / 60, int(match_time) % 60]
+    var details := Label.new()
+    details.position = Vector2(42.0, 92.0)
+    details.size = Vector2(416.0, 150.0)
+    details.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    details.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    details.add_theme_font_size_override("font_size", 20)
+    details.add_theme_color_override("font_color", Color("#DCEBFA"))
+    details.text = "MATCH TIME  %s\n\nHERO KILLS  %d  :  %d\nHERO DEATHS  %d  :  %d\nTOWERS DESTROYED  %d  :  %d\nRIFTWARDEN KILLS  %d  :  %d" % [
+        duration, match_kills[BLUE], match_kills[RED],
+        match_deaths[BLUE], match_deaths[RED],
+        match_towers_destroyed[BLUE], match_towers_destroyed[RED],
+        match_boss_kills[BLUE], match_boss_kills[RED]
+    ]
+    match_summary_panel.add_child(details)
+
+    var return_button := _make_button(
+        "RETURN TO HERO SELECT", Vector2(86.0, 286.0), Vector2(328.0, 52.0), Color("#315D79")
+    )
+    return_button.add_theme_font_size_override("font_size", 17)
+    return_button.pressed.connect(_return_to_hero_select)
+    match_summary_panel.add_child(return_button)
+
+
+func _return_to_hero_select() -> void:
+    get_tree().reload_current_scene()
 
 
 func on_neutral_monster_killed(monster: ArenaNeutralMonster, killer_team: int) -> void:
@@ -1791,6 +1961,9 @@ func on_boss_slam(hit_count: int, phase: int) -> void:
 func on_boss_killed(boss: ArenaAncientBoss, killer_team: int) -> void:
     ancient_boss = null
     boss_spawn_timer = BOSS_RESPAWN_DELAY
+    if killer_team == BLUE or killer_team == RED:
+        match_boss_kills[killer_team] += 1
+        _show_kill_feed("ELDER RIFTWARDEN", killer_team)
     _apply_team_blessing(killer_team, TEAM_BLESSING_DURATION)
 
     if killer_team == BLUE:
@@ -1819,9 +1992,11 @@ func _apply_team_blessing(team: int, duration: float) -> void:
 
 
 func on_structure_destroyed(owner_team: int, is_core: bool, lane: int) -> void:
+    play_arena_sound("structure")
     if is_core:
         game_over = true
-        message_label.text = "BLUE VICTORY!" if owner_team == RED else "RED VICTORY!"
+        var winner_team := BLUE if owner_team == RED else RED
+        message_label.text = "BLUE VICTORY!" if winner_team == BLUE else "RED VICTORY!"
         if is_instance_valid(shop_panel):
             shop_panel.visible = false
         if is_instance_valid(minimap):
@@ -1838,7 +2013,19 @@ func on_structure_destroyed(owner_team: int, is_core: bool, lane: int) -> void:
         if is_instance_valid(settings_button):
             settings_button.disabled = true
             settings_button.text = "MATCH END"
+        if is_instance_valid(kill_feed_label):
+            kill_feed_label.visible = false
+        if is_instance_valid(targeting):
+            targeting.clear_target()
+            targeting.set_process(false)
+        joystick_touch = -1
+        joystick_vector = Vector2.ZERO
+        for action in ["move_up", "move_down", "move_left", "move_right"]:
+            Input.action_release(action)
+        _show_match_summary(winner_team)
     else:
+        var killer_team := RED if owner_team == BLUE else BLUE
+        match_towers_destroyed[killer_team] += 1
         var team_name := "BLUE" if owner_team == BLUE else "RED"
         if owner_team == RED:
             player_gold += 100
@@ -1854,6 +2041,11 @@ func on_structure_destroyed(owner_team: int, is_core: bool, lane: int) -> void:
 func _process(delta: float) -> void:
     if not match_started or game_over:
         return
+
+    if is_instance_valid(kill_feed_label) and kill_feed_label.visible:
+        kill_feed_timer = maxf(0.0, kill_feed_timer - delta)
+        if kill_feed_timer <= 0.0:
+            kill_feed_label.visible = false
 
     match_time += delta
     economy_timer += delta

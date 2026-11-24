@@ -1,4 +1,4 @@
-# Runebound Arena — Stage 14: Adaptive Android Experience
+# Runebound Arena — Integrated Release Preparation
 
 Stage 14 builds on the Stage 13 5v5 project. It adds safe-area-aware HUD scaling, multi-touch camera zoom and live rendering profiles while preserving the existing combat / AI systems.
 
@@ -28,7 +28,7 @@ Open **SETTINGS** during a match:
 | Balanced | 2x | On | 60 |
 | High | 4x | On | 60 |
 
-Balanced is the default. The project retains GL Compatibility for broad Android reach; Godot 4.3 does not provide 3D buffer scaling in that renderer, so no render-scale control is exposed. The profile affects MSAA, directional shadows and FPS cap only; it does not change hero stats, AI cadence, damage or match balance. Settings is mutually exclusive with SHOP and TALENTS and blocks world target selection behind the modal. The settings panel also reports live FPS and HUD scale. Profiles are runtime-only in Stage 14 and are not persisted across restarts.
+Balanced is the default. The project retains GL Compatibility for broad Android reach; Godot 4.3 does not provide 3D buffer scaling in that renderer, so no render-scale control is exposed. The profile affects MSAA, directional shadows and FPS cap only; it does not change hero stats, AI cadence, damage or match balance. Settings is mutually exclusive with SHOP and TALENTS and blocks world target selection behind the modal. The settings panel also reports live FPS and HUD scale. The selected graphics profile is saved to `user://runebound_settings.cfg` and restored on the next launch.
 
 ## Run Stage 14
 
@@ -48,6 +48,31 @@ Balanced is the default. The project retains GL Compatibility for broad Android 
 - `project.godot` — expanded landscape aspect handling.
 
 Run `python tools/validate_stage14.py` for dependency-free source checks. These checks do not replace Godot's parser, runtime or physical-device testing. See `STAGE14_TEST_PLAN.md`, `STAGE14_LAYOUT_SPEC.md` and `STAGE14_ANDROID_PROFILE.md`.
+
+
+## Integrated release-preparation additions
+
+The Stage 14 foundation now includes the first cross-match systems needed for a complete offline release:
+
+- Match scoreboard tracks hero kills / deaths, destroyed towers and Elder Riftwarden takedowns by team.
+- A compact kill notification appears when a hero falls or the Riftwarden is defeated.
+- Destroying an Ancient opens a match summary with the result, match duration and objective statistics.
+- The result screen can return to hero selection by reloading the current scene.
+- Combat, tower fire, neutral monsters, projectiles and world-target input freeze when the Ancient falls, so the result screen is stable.
+- Graphics quality is persisted locally and restored on the next launch.
+
+These additions are source-integrated and pass the dependency-free structural checks. They have not yet been verified by Godot's GDScript parser, a live match or an Android APK build.
+
+The integrated archive is intentionally wrapped in a top-level `Runebound_Arena/` folder so it works with the repository's existing **Expand Stage14 project** workflow. To update the GitHub repository from a phone:
+
+1. Upload `Runebound_Arena_Stage14_Full_Project.zip` to the repository root (not inside `archives/`).
+2. Open **Actions → Expand Stage14 project → Run workflow**. Wait until the run finishes successfully; it expands the project into the repository root and commits the files.
+3. Open **Actions → Build Runebound Arena Android APK → Run workflow**.
+4. Download the `RuneboundArena-Android-debug` artifact from the completed run.
+
+The Android preset targets ARM64 and produces a debug-signed APK. The workflows and preset are prepared, but have not yet been executed against the repository.
+
+See `RELEASE_READINESS.md` for the current integration status and remaining engine/device validation.
 
 ## Apply Stage 14 patch to Stage 13
 
@@ -474,3 +499,10 @@ Extract `Runebound_Arena_Stage7_Patch.zip` into the root of the Stage 6 project,
 ## Validation status
 
 The Stage 7 archive includes source-level checks for script structure, recipe definitions and totals, patch overlay equivalence and ZIP integrity. Godot's own parser/runtime, Android APK export and physical-device testing are not confirmed in this environment. Use `STAGE7_TEST_PLAN.md` for the in-engine and device checks still required.
+
+
+## Integrated visual and audio asset pack
+
+The project includes original generated terrain textures, five hero portrait emblems, Q/W/E/R ability icons, a looping ambient match track and five gameplay/UI sound cues. The game uses procedural Godot 3D mesh assemblies for heroes, minions, neutral monsters, towers and the boss; rune obelisks, crystal landmarks and subtle procedural idle/locomotion motion enrich the arena. These are not imported rigged character models: skeletal animation assets are not part of this package yet.
+
+Run `python3 tools/validate_release.py` to check the source integration and required asset files. The check is static; Godot import, runtime and Android export must still be verified by the GitHub Actions workflows.

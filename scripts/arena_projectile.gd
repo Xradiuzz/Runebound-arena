@@ -7,6 +7,7 @@ var target: Node3D
 var damage := 10.0
 var travel_speed := 14.0
 var projectile_color := Color("#68DFFF")
+var game: Node
 var impact_radius := 0.62
 var life_remaining := 5.0
 var _visual: MeshInstance3D
@@ -18,7 +19,8 @@ func setup(
     hit_damage: float,
     speed_value: float,
     from_minion: bool,
-    tint: Color
+    tint: Color,
+    game_node: Node = null
 ) -> void:
     source_team = owner_team
     target = target_node
@@ -26,6 +28,7 @@ func setup(
     travel_speed = maxf(1.0, speed_value)
     source_is_minion = from_minion
     projectile_color = tint
+    game = game_node
 
 
 func _ready() -> void:
@@ -50,6 +53,8 @@ func _build_visual() -> void:
 
 
 func _process(delta: float) -> void:
+    if is_instance_valid(game) and bool(game.get("game_over")):
+        return
     life_remaining -= delta
     if life_remaining <= 0.0 or not is_instance_valid(target):
         queue_free()

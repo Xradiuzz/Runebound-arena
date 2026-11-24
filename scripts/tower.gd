@@ -103,6 +103,8 @@ func _add_mesh(
     return instance
 
 func _process(delta: float) -> void:
+    if is_instance_valid(game) and bool(game.get("game_over")):
+        return
     if hp <= 0.0:
         return
 

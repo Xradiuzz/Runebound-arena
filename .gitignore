@@ -1,0 +1,13 @@
+# Godot generated/imported data
+.godot/
+.import/
+
+# Build outputs
+build/
+*.apk
+*.aab
+
+# Local editor / operating-system files
+.DS_Store
+Thumbs.db
+*.log

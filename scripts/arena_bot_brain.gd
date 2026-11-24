@@ -249,14 +249,27 @@ func _choose_role_target() -> Node3D:
             if candidate.lane_index != actor.lane_index:
                 score += 3.5
         else:
+            var health_ratio := candidate.hp / maxf(1.0, candidate.max_hp)
             if is_carry:
                 score += 1.0
+                score -= (1.0 - health_ratio) * 4.0
+                if health_ratio > 0.45:
+                    score += 3.5
+            elif actor.team_role == "support":
+                score += 1.6
+            elif actor.team_role == "roamer":
+                var nearby_enemy_guardians := _count_team_heroes_near(candidate.global_position, candidate.team, 7.0)
+                var nearby_allies := _count_team_heroes_near(candidate.global_position, actor.team, 7.0)
+                score -= (1.0 - health_ratio) * 3.0
+                if nearby_enemy_guardians <= 1:
+                    score -= 2.6
+                if nearby_allies > nearby_enemy_guardians:
+                    score -= 1.8
+                elif nearby_enemy_guardians >= nearby_allies + 2:
+                    score += 3.0
             else:
                 score -= 2.0
-            var health_ratio := candidate.hp / maxf(1.0, candidate.max_hp)
-            score -= (1.0 - health_ratio) * 2.5
-            if is_carry and health_ratio > 0.45:
-                score += 3.5
+                score -= (1.0 - health_ratio) * 2.5
         if score < best_score:
             best_score = score
             chosen = candidate
@@ -264,6 +277,19 @@ func _choose_role_target() -> Node3D:
     if is_instance_valid(chosen):
         return chosen
     return _find_lane_objective()
+
+
+func _count_team_heroes_near(center: Vector3, team_id: int, search_range: float) -> int:
+    var count := 0
+    for node in get_tree().get_nodes_in_group("arena_actors"):
+        if not (node is ArenaActor):
+            continue
+        var candidate := node as ArenaActor
+        if candidate.is_minion or not candidate.alive or candidate.team != team_id:
+            continue
+        if center.distance_to(candidate.global_position) <= search_range:
+            count += 1
+    return count
 
 
 func _count_wounded_allies(max_health_ratio: float, search_range: float) -> int:
@@ -317,7 +343,10 @@ func _try_cast_hero_ability(slot: String) -> bool:
     var cooldowns: Dictionary = ability_kit.get("cooldowns")
     if float(cooldowns.get(slot, 0.0)) > 0.0:
         return false
-    return bool(ability_kit.call("cast", slot))
+    var cast_success := bool(ability_kit.call("cast", slot))
+    if cast_success and is_instance_valid(game) and game.has_method("play_arena_sound"):
+        game.call("play_arena_sound", "spell")
+    return cast_success
 
 
 func _home_position() -> Vector3:
@@ -357,6 +386,26 @@ func _choose_combat_target() -> Node3D:
             score -= 2.0
         if candidate.is_player and candidate_health < 0.30:
             score -= 3.0
+
+        # Role-aware target selection: carries finish vulnerable heroes, while
+        # roamers prefer isolated pick-offs and avoid starting losing fights.
+        if actor.team_role == "carry" and not candidate.is_minion:
+            score -= (1.0 - candidate_health) * 3.0
+        elif actor.team_role == "support" and not candidate.is_minion:
+            score += 1.4
+        elif actor.team_role == "roamer" and not candidate.is_minion:
+            var enemy_escort_count := _count_team_heroes_near(candidate.global_position, candidate.team, 7.0)
+            var allied_follow_count := _count_team_heroes_near(candidate.global_position, actor.team, 7.0)
+            if enemy_escort_count <= 1:
+                score -= 2.8
+            if allied_follow_count > enemy_escort_count:
+                score -= 1.8
+            elif enemy_escort_count >= allied_follow_count + 2:
+                score += 3.2
+            score -= (1.0 - candidate_health) * 2.0
+        elif actor.team_role == "offlane" and candidate.is_minion and candidate.minion_role == "siege":
+            score -= 2.0
+
         if score < best_score:
             best_score = score
             chosen = candidate
@@ -470,6 +519,8 @@ func _can_cast(slot: String, cost: float) -> bool:
 func _spend(slot: String, cost: float, cooldown: float) -> void:
     mana -= cost
     cooldowns[slot] = cooldown
+    if is_instance_valid(game) and game.has_method("play_arena_sound"):
+        game.call("play_arena_sound", "spell")
 
 
 func _cast_q(target_actor: ArenaActor) -> bool:

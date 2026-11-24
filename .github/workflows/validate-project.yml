@@ -1,0 +1,46 @@
+name: Validate Runebound Arena
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate project structure and release integrations
+        run: python3 tools/validate_release.py
+
+      - name: Run Stage 13 regression checks
+        run: python3 tools/validate_stage13.py
+
+      - name: Run Stage 14 regression checks
+        run: python3 tools/validate_stage14.py
+
+  godot-import:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Godot editor settings and export templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/ ~/.config/godot
+          if [ -d /root/.config/godot ]; then
+            cp -a /root/.config/godot/. ~/.config/godot/
+          fi
+          if [ -d /root/.local/share/godot/export_templates/4.3.stable ]; then
+            mkdir -p ~/.local/share/godot/export_templates/4.3.stable
+            cp -a /root/.local/share/godot/export_templates/4.3.stable/. ~/.local/share/godot/export_templates/4.3.stable/
+          fi
+
+      - name: Import project and parse scripts with Godot 4.3
+        run: godot --headless --verbose --path . --import

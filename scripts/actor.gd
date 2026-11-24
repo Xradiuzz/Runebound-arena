@@ -41,6 +41,7 @@ var body_mesh: MeshInstance3D
 var hp_fill: MeshInstance3D
 var visual_root: Node3D
 var shield_aura: MeshInstance3D
+var _visual_clock := 0.0
 
 var active_statuses: Array[Dictionary] = []
 var shield_points := 0.0
@@ -730,6 +731,15 @@ func _add_hero_detail(
 
 
 func _process(delta: float) -> void:
+    _visual_clock += delta
+    if is_instance_valid(visual_root) and alive:
+        var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+        var moving := horizontal_speed > 0.35
+        var bob_amplitude := 0.038 if moving else 0.018
+        var bob_frequency := 8.5 if moving else 2.2
+        visual_root.position.y = sin(_visual_clock * bob_frequency) * bob_amplitude
+        visual_root.rotation.z = sin(_visual_clock * 4.8) * 0.018 if moving else 0.0
+
     if not team_blessing_active:
         return
     team_blessing_remaining = maxf(0.0, team_blessing_remaining - delta)
@@ -752,6 +762,9 @@ func apply_team_blessing(duration: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+    if is_instance_valid(game) and bool(game.get("game_over")):
+        velocity = Vector3.ZERO
+        return
     if not alive:
         respawn_timer -= delta
         if respawn_timer <= 0.0 and not is_minion:
@@ -997,6 +1010,8 @@ func try_attack() -> void:
         return
 
     if target.has_method("take_damage"):
+        if not is_minion and is_instance_valid(game) and game.has_method("play_arena_sound"):
+            game.call("play_arena_sound", "attack")
         var final_damage := attack_damage + bonus_attack_damage
         var effective_attack_rate := attack_rate / (1.0 + maxf(0.0, bonus_attack_speed))
 
@@ -1063,7 +1078,8 @@ func _fire_minion_projectile(hit_damage: float) -> void:
         hit_damage,
         9.5 if minion_role == "siege" else 15.0,
         true,
-        tint
+        tint,
+        game
     )
     game.add_child(projectile)
     projectile.global_position = global_position + Vector3(0.0, 0.88, 0.0)
