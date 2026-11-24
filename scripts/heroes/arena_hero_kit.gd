@@ -214,7 +214,7 @@ func _cast_nyxara(definition: ArenaAbilityDefinition, rank: int) -> bool:
                 definition.value(definition.duration, rank),
                 0.0
             )
-            if hits <= 0:
+            if gale_hits <= 0:
                 _show_message("No enemies inside Void Eclipse.")
                 return false
             _spawn_pulse(hero.global_position, Color("#9B70FF"), definition.radius)
