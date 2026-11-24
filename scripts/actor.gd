@@ -215,12 +215,31 @@ func _build_visuals() -> void:
     add_child(visual_root)
 
     var body_material := StandardMaterial3D.new()
-    body_material.albedo_color = Color("#245078") if team == BLUE else Color("#742F3D")
+    var hero_body_color := Color("#245078") if team == BLUE else Color("#742F3D")
+    var hero_accent_color := Color("#57D7FF") if team == BLUE else Color("#FF795E")
+    if not is_minion:
+        match hero_id:
+            "nyxara":
+                hero_body_color = Color("#343B78") if team == BLUE else Color("#542C66")
+                hero_accent_color = Color("#9B8BFF") if team == BLUE else Color("#FF78D8")
+            "grom":
+                hero_body_color = Color("#426447") if team == BLUE else Color("#713B35")
+                hero_accent_color = Color("#E2A15B") if team == BLUE else Color("#FF7650")
+            "elyra":
+                hero_body_color = Color("#A69A78") if team == BLUE else Color("#76505D")
+                hero_accent_color = Color("#FFE6A0") if team == BLUE else Color("#FF9A83")
+            "vaelis":
+                hero_body_color = Color("#24483F") if team == BLUE else Color("#633B43")
+                hero_accent_color = Color("#64E2C0") if team == BLUE else Color("#FF8A79")
+            "ash_knight":
+                hero_body_color = Color("#4A3447")
+                hero_accent_color = Color("#FF765F")
+    body_material.albedo_color = hero_body_color
     body_material.metallic = 0.42
     body_material.roughness = 0.32
 
     var accent_material := StandardMaterial3D.new()
-    accent_material.albedo_color = Color("#57D7FF") if team == BLUE else Color("#FF795E")
+    accent_material.albedo_color = hero_accent_color
     accent_material.emission_enabled = true
     accent_material.emission = accent_material.albedo_color
     accent_material.emission_energy_multiplier = 1.15
