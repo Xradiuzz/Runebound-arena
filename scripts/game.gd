@@ -71,7 +71,7 @@ var settings_quality_label: Label
 var settings_description_label: Label
 var settings_fps_label: Label
 var settings_refresh_timer := 0.0
-var camera_zoom := 1.0
+var camera_zoom := 1.24
 var _active_touch_positions: Dictionary = {}
 var _pinch_distance := 0.0
 var economy_timer := 0.0
@@ -963,8 +963,8 @@ func _spawn_hud() -> void:
 
     minimap = ArenaMinimap.new()
     minimap.name = "ArenaMinimap"
-    minimap.position = Vector2(1038.0, 18.0)
-    minimap.size = Vector2(222.0, 184.0)
+    minimap.position = Vector2(1004.0, 18.0)
+    minimap.size = Vector2(256.0, 208.0)
     minimap.setup(self)
     hud.add_child(minimap)
 
@@ -1005,8 +1005,8 @@ func _spawn_hud() -> void:
     joystick_base.add_child(joystick_knob)
 
     mana_label = Label.new()
-    mana_label.position = Vector2(635.0, 548.0)
-    mana_label.size = Vector2(430.0, 28.0)
+    mana_label.position = Vector2(700.0, 538.0)
+    mana_label.size = Vector2(390.0, 24.0)
     mana_label.add_theme_font_size_override("font_size", 17)
     mana_label.add_theme_color_override("font_color", Color("#8DE4FF"))
     hud.add_child(mana_label)
@@ -1049,11 +1049,11 @@ func _spawn_hud() -> void:
 
     for index in range(slots.size()):
         var slot: String = slots[index]
-        var button_position := Vector2(635.0 + float(index) * 104.0, 585.0)
+        var button_position := Vector2(700.0 + float(index) * 98.0, 570.0)
         var ability_button := _make_button(
             slot + "\nLEARN",
             button_position,
-            Vector2(96.0, 94.0),
+            Vector2(90.0, 112.0),
             slot_colors[index]
         )
         ability_button.add_theme_font_size_override("font_size", 14)
@@ -1065,8 +1065,8 @@ func _spawn_hud() -> void:
 
         var upgrade_button := _make_button(
             "+",
-            button_position + Vector2(70.0, -12.0),
-            Vector2(28.0, 28.0),
+            button_position + Vector2(64.0, -10.0),
+            Vector2(26.0, 26.0),
             Color("#B68B42")
         )
         upgrade_button.add_theme_font_size_override("font_size", 18)
@@ -1074,7 +1074,7 @@ func _spawn_hud() -> void:
         hud.add_child(upgrade_button)
         upgrade_buttons[slot] = upgrade_button
 
-    attack_button = _make_button("ATTACK", Vector2(1090.0, 575.0), Vector2(150.0, 112.0), Color("#245E91"))
+    attack_button = _make_button("ATTACK\nTARGET", Vector2(1110.0, 552.0), Vector2(132.0, 132.0), Color("#245E91"))
     attack_button.pressed.connect(_player_attack)
     hud.add_child(attack_button)
 
@@ -1635,9 +1635,15 @@ func _player_attack() -> void:
         player.request_attack()
 
 func _on_ability_pressed(slot: String) -> void:
-    if is_instance_valid(hero_abilities):
-        if bool(hero_abilities.call("cast", slot)):
-            play_arena_sound("spell")
+    if not is_instance_valid(hero_abilities):
+        return
+    if int(hero_abilities.call("get_rank", slot)) <= 0:
+        if bool(hero_abilities.call("upgrade_ability", slot)):
+            play_arena_sound("ui")
+        _update_ability_hud()
+        return
+    if bool(hero_abilities.call("cast", slot)):
+        play_arena_sound("spell")
     _update_ability_hud()
 
 
@@ -1669,8 +1675,8 @@ func _update_ability_hud() -> void:
         var title := String(hero_abilities.call("get_title", slot))
 
         if rank <= 0:
-            button.text = "%s\n%s\nUNLEARNED" % [slot, title]
-            button.disabled = true
+            button.text = "%s\n%s\nTAP TO LEARN" % [slot, title]
+            button.disabled = not bool(hero_abilities.call("can_upgrade", slot)) or not player.alive
         elif cooldown > 0.05:
             button.text = "%s • %d\n%.1fs" % [slot, rank, cooldown]
             button.disabled = true
@@ -1719,9 +1725,9 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventMouseButton:
         var mouse_button := event as InputEventMouseButton
         if not _is_modal_ui_open() and mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP:
-            camera_zoom = clampf(camera_zoom * 0.92, 0.78, 1.42)
+            camera_zoom = clampf(camera_zoom * 0.92, 0.95, 1.68)
         elif not _is_modal_ui_open() and mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-            camera_zoom = clampf(camera_zoom * 1.08, 0.78, 1.42)
+            camera_zoom = clampf(camera_zoom * 1.08, 0.95, 1.68)
 
 
 func _to_design_position(viewport_position: Vector2) -> Vector2:
@@ -1762,7 +1768,7 @@ func _apply_camera_pinch() -> void:
         _pinch_distance = current_distance
         return
     if current_distance > 1.0 and absf(current_distance - _pinch_distance) > 0.8:
-        camera_zoom = clampf(camera_zoom * current_distance / _pinch_distance, 0.78, 1.42)
+        camera_zoom = clampf(camera_zoom * current_distance / _pinch_distance, 0.95, 1.68)
         _pinch_distance = current_distance
 
 
@@ -2079,7 +2085,7 @@ func _process(delta: float) -> void:
                 settings_fps_label.text = "FPS %d  •  UI SCALE %.2fx" % [int(Engine.get_frames_per_second()), ui_scale]
 
     if is_instance_valid(player) and is_instance_valid(game_camera):
-        var camera_offset := Vector3(0.0, 25.5, 20.5) * camera_zoom
+        var camera_offset := Vector3(0.0, 31.5, 25.5) * camera_zoom
         var camera_target := player.global_position + camera_offset
         var follow_weight := 1.0 - exp(-delta * 3.6)
         game_camera.global_position = game_camera.global_position.lerp(camera_target, follow_weight)
