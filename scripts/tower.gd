@@ -117,25 +117,35 @@ func _process(delta: float) -> void:
 
     var chosen: ArenaActor
     var chosen_priority := 999
-    var chosen_distance := attack_range
+    var chosen_distance := INF
 
+    # A lane tower protects its own lane. It must not shoot at units fighting
+    # in a neighboring lane just because they happen to enter its radius.
     for node in get_parent().get_children():
         if not (node is ArenaActor):
             continue
-        if node.team == team or not node.alive:
+        var candidate := node as ArenaActor
+        if candidate.team == team or not candidate.alive:
             continue
 
-        var distance := global_position.distance_to(node.global_position)
+        var offset := candidate.global_position - global_position
+        offset.y = 0.0
+        var distance := offset.length()
         if distance > attack_range:
+            continue
+        if not core and candidate.lane_index != lane_index:
             continue
 
         var priority := 2
-        if node.is_minion:
-            priority = 0 if node.minion_role == "siege" else 1
-        if priority < chosen_priority or (
-            priority == chosen_priority and distance < chosen_distance
-        ):
-            chosen = node
+        if candidate.is_minion:
+            # Siege engines are the most dangerous lane units; regular creeps
+            # absorb tower shots before heroes can be selected.
+            priority = 0 if candidate.minion_role == "siege" else 1
+
+        var score := float(priority) * 100.0 + distance
+        var current_score := float(chosen_priority) * 100.0 + chosen_distance
+        if score < current_score:
+            chosen = candidate
             chosen_priority = priority
             chosen_distance = distance
 
