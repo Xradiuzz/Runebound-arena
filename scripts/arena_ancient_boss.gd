@@ -63,7 +63,8 @@ func _build_visuals() -> void:
 
     for side in [-1.0, 1.0]:
         var horn := MeshInstance3D.new()
-        var horn_mesh := ConeMesh.new()
+        var horn_mesh := CylinderMesh.new()
+        horn_mesh.top_radius = 0.0
         horn_mesh.bottom_radius = 0.31
         horn_mesh.height = 1.35
         horn.mesh = horn_mesh
