@@ -451,7 +451,7 @@ func _spawn_heroes() -> void:
     var active_roles := ["offlane", "mid", "carry", "support", "roamer"]
     var player_role := str(role_by_hero.get(selected_hero_id, "mid"))
     var player_lane := team_director.lane_for_role(player_role) if is_instance_valid(team_director) else 1
-    var player_x := LANE_X[player_lane] + float(role_x_offsets.get(player_role, 0.0))
+    var player_x: float = float(LANE_X[player_lane]) + float(role_x_offsets.get(player_role, 0.0))
 
     player = _spawn_actor(
         str(name_by_hero.get(selected_hero_id, "Warden")),
@@ -475,7 +475,7 @@ func _spawn_heroes() -> void:
             continue
         var ally_hero_id := str(hero_by_role[blue_role])
         var ally_lane := team_director.lane_for_role(blue_role) if is_instance_valid(team_director) else 1
-        var ally_x := LANE_X[ally_lane] + float(role_x_offsets.get(blue_role, 0.0))
+        var ally_x: float = float(LANE_X[ally_lane]) + float(role_x_offsets.get(blue_role, 0.0))
         var ally := _spawn_actor(
             "Blue %s" % str(name_by_hero[ally_hero_id]),
             BLUE,
@@ -498,7 +498,7 @@ func _spawn_heroes() -> void:
         var red_role := str(role_variant)
         var red_hero_id := "ash_knight" if red_role == "offlane" else str(hero_by_role[red_role])
         var red_lane := team_director.lane_for_role(red_role) if is_instance_valid(team_director) else 1
-        var red_x := LANE_X[red_lane] + float(role_x_offsets.get(red_role, 0.0))
+        var red_x: float = float(LANE_X[red_lane]) + float(role_x_offsets.get(red_role, 0.0))
         var red_actor := _spawn_actor(
             str(name_by_hero[red_hero_id]),
             RED,
