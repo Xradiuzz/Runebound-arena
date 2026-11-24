@@ -31,7 +31,25 @@ jobs:
       - name: Import project
         run: godot --headless --verbose --path . --import
 
+      - name: Create CI debug keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -v -noprompt \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -deststoretype JKS
+
       - name: Export debug APK (ARM64)
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           mkdir -p build/android
           godot --headless --verbose --path . --export-debug "Android" build/android/RuneboundArena-debug.apk
