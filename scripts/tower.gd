@@ -150,7 +150,16 @@ func _process(delta: float) -> void:
             chosen_distance = distance
 
     if is_instance_valid(chosen):
-        chosen.take_damage(damage, team, false)
+        if is_instance_valid(game):
+            var projectile := ArenaProjectile.new()
+            var tint := Color("#62DFFF") if team == 0 else Color("#FF806B")
+            if core:
+                tint = Color("#F2D18B") if team == 0 else Color("#FF9D82")
+            projectile.setup(team, chosen, damage, 18.0, false, tint, game)
+            game.add_child(projectile)
+            projectile.global_position = global_position + Vector3(0.0, 2.65 if not core else 3.15, 0.0)
+        else:
+            chosen.take_damage(damage, team, false)
         cooldown = 1.25 if not core else 1.0
 
 func take_damage(
