@@ -45,6 +45,7 @@ func update_brain(delta: float) -> void:
         return
 
     _sync_actor_level()
+    _enforce_combat_leash()
     if actor.hero_id != "ash_knight":
         _update_team_bot(delta)
         return
@@ -66,6 +67,19 @@ func update_brain(delta: float) -> void:
     else:
         _push_lane(delta)
 
+
+func _enforce_combat_leash() -> void:
+    # A bot may select a nearby hero for a skirmish, but must not keep chasing
+    # that hero across the entire arena after the original engagement ends.
+    if not is_instance_valid(actor.target) or not (actor.target is ArenaActor):
+        return
+    var target_actor := actor.target as ArenaActor
+    if not target_actor.alive:
+        actor.target = null
+        return
+    var distance := actor.global_position.distance_to(target_actor.global_position)
+    if distance > 16.0:
+        actor.target = null
 
 func _think() -> void:
     if actor.hero_id != "ash_knight":
