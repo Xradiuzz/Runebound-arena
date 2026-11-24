@@ -706,20 +706,20 @@ func _spawn_hero_select() -> void:
     selection_layer.add_child(backdrop)
 
     var title := Label.new()
-    title.text = "CHOOSE YOUR CHAMPION"
-    title.position = Vector2(0.0, 42.0)
-    title.size = Vector2(1280.0, 58.0)
+    title.text = "RUNBOUND ARENA"
+    title.position = Vector2(0.0, 24.0)
+    title.size = Vector2(1280.0, 66.0)
     title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    title.add_theme_font_size_override("font_size", 38)
+    title.add_theme_font_size_override("font_size", 46)
     title.add_theme_color_override("font_color", Color("#F2F6FF"))
     selection_layer.add_child(title)
 
     var subtitle := Label.new()
-    subtitle.text = "Five roles. Two armies. One war for the Ancients."
-    subtitle.position = Vector2(0.0, 105.0)
-    subtitle.size = Vector2(1280.0, 32.0)
+    subtitle.text = "CHOOSE YOUR CHAMPION     •     5v5     •     THREE LANES     •     OFFLINE BATTLE"
+    subtitle.position = Vector2(0.0, 94.0)
+    subtitle.size = Vector2(1280.0, 28.0)
     subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    subtitle.add_theme_font_size_override("font_size", 18)
+    subtitle.add_theme_font_size_override("font_size", 14)
     subtitle.add_theme_color_override("font_color", Color("#AFC4DF"))
     selection_layer.add_child(subtitle)
 
@@ -785,33 +785,33 @@ func _spawn_hero_select() -> void:
         var hero_data: Dictionary = roster[index]
         var hero_color: Color = hero_data["color"]
         var card := Panel.new()
-        card.position = Vector2(34.0 + float(index) * 242.0, 175.0)
-        card.size = Vector2(220.0, 455.0)
+        card.position = Vector2(24.0 + float(index) * 248.0, 145.0)
+        card.size = Vector2(232.0, 500.0)
         card.add_theme_stylebox_override(
             "panel",
-            _panel_style(Color("#17263B"), 0.98, 22)
+            _panel_style(Color("#111F34"), 0.99, 22)
         )
         selection_layer.add_child(card)
 
         var accent := ColorRect.new()
         accent.color = hero_color
-        accent.position = Vector2(14.0, 18.0)
-        accent.size = Vector2(192.0, 5.0)
+        accent.position = Vector2(14.0, 16.0)
+        accent.size = Vector2(204.0, 6.0)
         card.add_child(accent)
 
         var icon := TextureRect.new()
         icon.name = "HeroPortrait"
         icon.texture = load(str(hero_data["portrait"]))
-        icon.position = Vector2(70.0, 22.0)
-        icon.size = Vector2(80.0, 80.0)
+        icon.position = Vector2(64.0, 30.0)
+        icon.size = Vector2(104.0, 104.0)
         icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
         icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
         card.add_child(icon)
 
         var name_label := Label.new()
         name_label.text = str(hero_data["name"])
-        name_label.position = Vector2(12.0, 103.0)
-        name_label.size = Vector2(196.0, 36.0)
+        name_label.position = Vector2(12.0, 139.0)
+        name_label.size = Vector2(208.0, 34.0)
         name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
         name_label.add_theme_font_size_override("font_size", 23)
         name_label.add_theme_color_override("font_color", Color("#F4F7FF"))
@@ -819,42 +819,42 @@ func _spawn_hero_select() -> void:
 
         var role_label := Label.new()
         role_label.text = str(hero_data["role"])
-        role_label.position = Vector2(10.0, 140.0)
-        role_label.size = Vector2(200.0, 26.0)
+        role_label.position = Vector2(10.0, 174.0)
+        role_label.size = Vector2(212.0, 26.0)
         role_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-        role_label.add_theme_font_size_override("font_size", 10)
+        role_label.add_theme_font_size_override("font_size", 11)
         role_label.add_theme_color_override("font_color", hero_color.lightened(0.25))
         card.add_child(role_label)
 
         var description := Label.new()
         description.text = str(hero_data["description"])
-        description.position = Vector2(16.0, 173.0)
-        description.size = Vector2(188.0, 66.0)
+        description.position = Vector2(18.0, 211.0)
+        description.size = Vector2(196.0, 68.0)
         description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-        description.add_theme_font_size_override("font_size", 12)
+        description.add_theme_font_size_override("font_size", 13)
         description.add_theme_color_override("font_color", Color("#D0DDED"))
         card.add_child(description)
 
         var skills := Label.new()
         skills.text = str(hero_data["skills"])
-        skills.position = Vector2(16.0, 244.0)
-        skills.size = Vector2(188.0, 108.0)
-        skills.add_theme_font_size_override("font_size", 12)
+        skills.position = Vector2(18.0, 291.0)
+        skills.size = Vector2(196.0, 100.0)
+        skills.add_theme_font_size_override("font_size", 13)
         skills.add_theme_color_override("font_color", Color("#B8CBE2"))
         card.add_child(skills)
 
         var stats := Label.new()
         stats.text = str(hero_data["stats"])
-        stats.position = Vector2(12.0, 360.0)
-        stats.size = Vector2(196.0, 28.0)
-        stats.add_theme_font_size_override("font_size", 8)
+        stats.position = Vector2(14.0, 405.0)
+        stats.size = Vector2(204.0, 24.0)
+        stats.add_theme_font_size_override("font_size", 9)
         stats.add_theme_color_override("font_color", Color("#93A8C2"))
         card.add_child(stats)
 
         var choose_button := _make_button(
             "SELECT " + String(hero_data["name"]),
-            Vector2(12.0, 407.0),
-            Vector2(196.0, 40.0),
+            Vector2(14.0, 444.0),
+            Vector2(204.0, 44.0),
             hero_color
         )
         choose_button.add_theme_font_size_override("font_size", 13)
@@ -863,7 +863,7 @@ func _spawn_hero_select() -> void:
 
     var footer := Label.new()
     footer.text = "RUN BOUND ARENA   •   GODOT 4   •   ANDROID / DESKTOP PROTOTYPE"
-    footer.position = Vector2(0.0, 666.0)
+    footer.position = Vector2(0.0, 674.0)
     footer.size = Vector2(1280.0, 24.0)
     footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     footer.add_theme_font_size_override("font_size", 12)
